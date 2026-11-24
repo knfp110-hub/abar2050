@@ -1,0 +1,58 @@
+
+name: Build ABAR 2050 Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create Capacitor project
+        run: |
+          mkdir -p www
+          cp index.html manifest.webmanifest sw.js www/
+          npm init -y
+          npm install @capacitor/core@7 @capacitor/android@7
+          npm install --save-dev @capacitor/cli@7
+          cat > capacitor.config.json <<'EOF'
+          {
+            "appId": "com.abar2050.app",
+            "appName": "ABAR 2050",
+            "webDir": "www"
+          }
+          EOF
+          npx cap add android
+
+      - name: Build debug APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ABAR2050-APK
+          path: android/app/build/outputs/apk/debug/app-debug.apk
